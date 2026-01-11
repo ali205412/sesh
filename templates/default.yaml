@@ -1,0 +1,9 @@
+# Default sesh template
+# Creates a simple shell session
+
+name: default
+description: "Default shell session"
+
+windows:
+  - name: shell
+    # No command = default shell

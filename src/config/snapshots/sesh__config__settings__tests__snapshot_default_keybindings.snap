@@ -1,0 +1,41 @@
+---
+source: src/config/settings.rs
+expression: keys
+---
+quit:
+  - q
+  - Ctrl-c
+select:
+  - Enter
+  - l
+back:
+  - Esc
+  - h
+up:
+  - k
+  - Up
+down:
+  - j
+  - Down
+top:
+  - g
+  - Home
+bottom:
+  - G
+  - End
+search:
+  - /
+new_session:
+  - n
+kill_session:
+  - x
+detach:
+  - d
+windows:
+  - w
+templates:
+  - t
+refresh:
+  - r
+help:
+  - "?"

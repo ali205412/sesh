@@ -1,0 +1,70 @@
+# sesh default configuration
+# Copy this to ~/.config/sesh/config.toml
+
+[ui]
+# Theme: "dark" or "light"
+theme = "dark"
+# Show preview panel
+show_preview = true
+# Number of lines in preview
+preview_lines = 8
+# Auto-refresh interval in milliseconds
+refresh_interval_ms = 1000
+
+[navigation]
+# Enable vim-style navigation (hjkl)
+vim_keys = true
+# Enable arrow key navigation
+arrow_keys = true
+# Enable mouse support (click to select)
+mouse_enabled = true
+
+[screen]
+# Screen socket directory (leave empty for default)
+# socket_dir = "/run/screen/S-$USER"
+# Default shell for new sessions
+# default_shell = "/bin/zsh"
+# Attach mode: "exec" (replace process) or "spawn" (new terminal)
+attach_mode = "exec"
+# Terminal to use for spawn mode
+spawn_terminal = "xterm"
+
+[integrations]
+# Show git branch and status
+git_status = true
+# Use fzf for fuzzy finding if available
+fzf_enabled = true
+# Enable shell hooks
+shell_hooks = false
+
+[keybindings]
+quit = ["q", "Ctrl-c"]
+select = ["Enter", "l"]
+back = ["Esc", "h"]
+up = ["k", "Up"]
+down = ["j", "Down"]
+top = ["g", "Home"]
+bottom = ["G", "End"]
+search = ["/"]
+new_session = ["n"]
+kill_session = ["x"]
+detach = ["d"]
+windows = ["w"]
+templates = ["t"]
+refresh = ["r"]
+help = ["?"]
+
+# SSH Hosts configuration
+# Uncomment and modify to add remote hosts
+
+# [[hosts]]
+# name = "production"
+# hostname = "prod.example.com"
+# user = "deploy"
+# port = 22
+# identity_file = "~/.ssh/prod_key"
+
+# [[hosts]]
+# name = "staging"
+# hostname = "staging.example.com"
+# user = "deploy"

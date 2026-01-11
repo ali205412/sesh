@@ -1,0 +1,27 @@
+# Web Development template
+# Creates a development environment with editor, server, and logs
+
+name: webdev
+description: "Web development environment"
+root: ~/projects/${PROJECT_NAME}
+
+on_create:
+  - echo "Setting up ${PROJECT_NAME}..."
+
+windows:
+  - name: editor
+    command: nvim .
+
+  - name: server
+    command: npm run dev
+
+  - name: logs
+    command: tail -f logs/*.log 2>/dev/null || echo "No log files found"
+
+  - name: shell
+    # Default shell for running commands
+
+variables:
+  PROJECT_NAME:
+    prompt: "Project name:"
+    default: "myproject"

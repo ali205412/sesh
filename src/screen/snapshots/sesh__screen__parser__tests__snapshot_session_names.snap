@@ -1,0 +1,12 @@
+---
+source: src/screen/parser.rs
+expression: names
+---
+- - simple
+  - dev-server
+- - with_underscore
+  - my_project
+- - with_numbers
+  - project123
+- - dotted
+  - app.v2

@@ -1,0 +1,74 @@
+[package]
+name = "sesh"
+version = "0.1.0"
+edition = "2021"
+description = "A fully-featured TUI manager for GNU Screen"
+authors = ["sesh contributors"]
+license = "MIT"
+repository = "https://github.com/sesh/sesh"
+keywords = ["screen", "tui", "terminal", "multiplexer", "session"]
+categories = ["command-line-interface", "command-line-utilities"]
+
+[dependencies]
+# TUI framework
+ratatui = "0.27"
+crossterm = "0.27"
+
+# Async runtime
+tokio = { version = "1", features = ["full", "process"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+toml = "0.8"
+serde_yaml = "0.9"
+
+# CLI argument parsing
+clap = { version = "4.3", features = ["derive"] }
+
+# Error handling
+anyhow = "1"
+thiserror = "1"
+
+# Utilities
+dirs = "5"
+chrono = { version = "0.4", features = ["serde"] }
+fuzzy-matcher = "0.3"
+regex = "1"
+shellexpand = "3"
+
+# Git integration
+git2 = "0.18"
+
+# Logging (for debugging)
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[dev-dependencies]
+# Snapshot testing
+insta = { version = "1.40", features = ["yaml"] }
+
+# Assertions
+pretty_assertions = "1"
+
+# Filesystem testing
+tempfile = "3"
+
+# Async test support (tokio already has test features in main deps)
+tokio-test = "0.4"
+
+# Test coverage
+proptest = "1"
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[lib]
+name = "sesh"
+path = "src/lib.rs"
+
+[[bin]]
+name = "sesh"
+path = "src/main.rs"

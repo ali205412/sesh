@@ -1,0 +1,12 @@
+---
+source: src/screen/parser.rs
+expression: activities
+---
+- - active
+  - Active
+- - bell
+  - Bell
+- - running
+  - Running
+- - idle
+  - Idle
