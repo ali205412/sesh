@@ -54,6 +54,11 @@ pub enum InputPurpose {
     NewWindow,
     RenameWindow,
     TemplateVariable(String),
+    AddHostName,
+    AddHostHostname,
+    AddHostUser,
+    AddHostPort,
+    AddHostIdentityFile,
 }
 
 /// Action to confirm
@@ -145,6 +150,9 @@ pub struct App {
 
     /// Fuzzy matcher
     matcher: SkimMatcherV2,
+
+    /// New host being added (name, hostname, user, port, identity_file)
+    pub new_host: Option<(String, String, String, String, String)>,
 }
 
 impl App {
@@ -188,6 +196,7 @@ impl App {
             settings_item_index: 0,
             theme,
             matcher: SkimMatcherV2::default(),
+            new_host: None,
         };
 
         Ok(app)
@@ -278,9 +287,26 @@ impl App {
             Action::NewSession => self.start_new_session(),
             Action::RenameSession => self.start_rename_session(),
             Action::KillSession => self.confirm_kill_session(),
-            Action::DetachSession => self.detach_session().await,
-            Action::AttachSession => self.attach_session(false).await,
+            Action::DetachSession => {
+                // In Settings view with Hosts, 'd' deletes a host instead of detaching
+                if self.view == View::Settings && self.is_hosts_category() {
+                    self.delete_host();
+                } else {
+                    self.detach_session().await;
+                }
+            }
+            Action::AttachSession => {
+                // In Settings view with Hosts, 'a' adds a host instead of attaching
+                if self.view == View::Settings && self.is_hosts_category() {
+                    self.start_add_host();
+                } else {
+                    self.attach_session(false).await;
+                }
+            }
             Action::AttachSpawn => self.attach_session(true).await,
+            Action::AddHost => self.start_add_host(),
+            Action::EditHost => {} // TODO
+            Action::DeleteHost => self.delete_host(),
             Action::ViewWindows => self.view_windows().await,
             Action::ViewTemplates => self.view = View::Templates,
             Action::ViewSettings => {
@@ -956,6 +982,61 @@ impl App {
                     InputPurpose::TemplateVariable(_) => {
                         // TODO: Implement template variable handling
                     }
+                    InputPurpose::AddHostName => {
+                        if let Some(ref mut host) = self.new_host {
+                            host.0 = value;
+                        }
+                        self.input_mode = InputMode::Input {
+                            prompt: "Hostname (e.g., example.com):".to_string(),
+                            purpose: InputPurpose::AddHostHostname,
+                        };
+                        self.input_buffer.clear();
+                        self.input_cursor = 0;
+                        return;
+                    }
+                    InputPurpose::AddHostHostname => {
+                        if let Some(ref mut host) = self.new_host {
+                            host.1 = value;
+                        }
+                        self.input_mode = InputMode::Input {
+                            prompt: "Username:".to_string(),
+                            purpose: InputPurpose::AddHostUser,
+                        };
+                        self.input_buffer.clear();
+                        self.input_cursor = 0;
+                        return;
+                    }
+                    InputPurpose::AddHostUser => {
+                        if let Some(ref mut host) = self.new_host {
+                            host.2 = value;
+                        }
+                        self.input_mode = InputMode::Input {
+                            prompt: "Port (default 22):".to_string(),
+                            purpose: InputPurpose::AddHostPort,
+                        };
+                        self.input_buffer = "22".to_string();
+                        self.input_cursor = 2;
+                        return;
+                    }
+                    InputPurpose::AddHostPort => {
+                        if let Some(ref mut host) = self.new_host {
+                            host.3 = if value.is_empty() { "22".to_string() } else { value };
+                        }
+                        self.input_mode = InputMode::Input {
+                            prompt: "Identity file (e.g., ~/.ssh/id_ed25519):".to_string(),
+                            purpose: InputPurpose::AddHostIdentityFile,
+                        };
+                        self.input_buffer.clear();
+                        self.input_cursor = 0;
+                        return;
+                    }
+                    InputPurpose::AddHostIdentityFile => {
+                        if let Some(ref mut host) = self.new_host {
+                            host.4 = value;
+                        }
+                        // Now save the host
+                        self.finish_add_host();
+                    }
                 }
             }
             InputMode::Confirm { .. } => {
@@ -970,6 +1051,76 @@ impl App {
         self.input_mode = InputMode::Normal;
         self.input_buffer.clear();
         self.input_cursor = 0;
+        self.new_host = None;
+    }
+
+    /// Check if currently viewing Hosts category in Settings
+    fn is_hosts_category(&self) -> bool {
+        use crate::ui::settings::SettingsCategory;
+        let categories = SettingsCategory::all();
+        categories.get(self.settings_category_index) == Some(&SettingsCategory::Hosts)
+    }
+
+    /// Start adding a new host
+    fn start_add_host(&mut self) {
+        self.new_host = Some((String::new(), String::new(), String::new(), "22".to_string(), String::new()));
+        self.input_mode = InputMode::Input {
+            prompt: "Host name (alias):".to_string(),
+            purpose: InputPurpose::AddHostName,
+        };
+        self.input_buffer.clear();
+        self.input_cursor = 0;
+    }
+
+    /// Delete selected host
+    fn delete_host(&mut self) {
+        if !self.is_hosts_category() || self.config.hosts.is_empty() {
+            return;
+        }
+        let idx = self.settings_item_index.min(self.config.hosts.len().saturating_sub(1));
+        if idx < self.config.hosts.len() {
+            self.config.hosts.remove(idx);
+            let _ = self.config.save(None);
+            // Update hosts list
+            self.hosts = vec![None];
+            for host in &self.config.hosts {
+                self.hosts.push(Some(host.name.clone()));
+            }
+            self.status_message = Some("Host deleted".to_string());
+        }
+    }
+
+    /// Finish adding a new host
+    fn finish_add_host(&mut self) {
+        use crate::config::hosts::HostConfig;
+
+        if let Some((name, hostname, user, port, identity_file)) = self.new_host.take() {
+            if name.is_empty() || hostname.is_empty() {
+                self.error_message = Some("Host name and hostname are required".to_string());
+                return;
+            }
+
+            let port_num = port.parse::<u16>().ok();
+
+            let new_host = HostConfig {
+                name: name.clone(),
+                hostname,
+                user: if user.is_empty() { None } else { Some(user) },
+                port: port_num,
+                identity_file: if identity_file.is_empty() { None } else { Some(identity_file) },
+            };
+
+            self.config.hosts.push(new_host);
+            let _ = self.config.save(None);
+
+            // Update hosts list
+            self.hosts = vec![None];
+            for host in &self.config.hosts {
+                self.hosts.push(Some(host.name.clone()));
+            }
+
+            self.status_message = Some(format!("Added host '{}'", name));
+        }
     }
 
     /// Get sessions for current host filter

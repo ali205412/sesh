@@ -61,6 +61,11 @@ pub enum Action {
     ViewSettings,
     Refresh,
 
+    // Settings actions
+    AddHost,
+    EditHost,
+    DeleteHost,
+
     // Search
     StartSearch,
     ClearSearch,
