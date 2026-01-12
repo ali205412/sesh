@@ -405,7 +405,11 @@ pub async fn select_window(session: &str, window: usize) -> Result<()> {
 
 /// Get preview of terminal content
 pub async fn get_preview(session: &str, window: Option<usize>) -> Result<Preview> {
-    let temp_file = format!("/tmp/sesh-preview-{}-{}", std::process::id(), session.replace('.', "_"));
+    let temp_file = format!(
+        "/tmp/sesh-preview-{}-{}",
+        std::process::id(),
+        session.replace('.', "_")
+    );
 
     // Remove any existing temp file first
     let _ = tokio::fs::remove_file(&temp_file).await;
@@ -415,7 +419,16 @@ pub async fn get_preview(session: &str, window: Option<usize>) -> Result<Preview
 
     // Capture terminal content with scrollback using -p to specify window
     let _output = Command::new("screen")
-        .args(["-p", &window_num, "-S", session, "-X", "hardcopy", "-h", &temp_file])
+        .args([
+            "-p",
+            &window_num,
+            "-S",
+            session,
+            "-X",
+            "hardcopy",
+            "-h",
+            &temp_file,
+        ])
         .output()
         .await
         .context("Failed to capture terminal content")?;
