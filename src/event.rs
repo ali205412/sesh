@@ -60,6 +60,7 @@ pub enum Action {
     ViewTemplates,
     ViewSettings,
     Refresh,
+    RefreshAll, // Include remote sessions
 
     // Settings actions
     AddHost,
@@ -212,6 +213,7 @@ fn normal_mode_action(key: KeyEvent) -> Action {
         KeyCode::Char('t') => Action::ViewTemplates,
         KeyCode::Char('S') => Action::ViewSettings,
         KeyCode::Char('r') => Action::Refresh,
+        KeyCode::Char('F') => Action::RefreshAll, // F for full refresh including remotes
 
         // Search
         KeyCode::Char('/') => Action::StartSearch,

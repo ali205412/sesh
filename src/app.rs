@@ -326,6 +326,11 @@ impl App {
                 self.settings_item_index = 0;
             }
             Action::Refresh => self.refresh_sessions().await,
+            Action::RefreshAll => {
+                self.refresh_sessions().await;
+                self.refresh_remote_sessions().await;
+                self.status_message = Some("Refreshed all (including remote)".to_string());
+            }
             Action::StartSearch => {
                 self.input_mode = InputMode::Search;
                 self.search_query.clear();
@@ -759,11 +764,11 @@ impl App {
         // Refresh will be triggered by tick or manually
     }
 
-    /// Refresh session list
+    /// Refresh session list (local only for responsiveness)
     pub async fn refresh_sessions(&mut self) {
         let mut all_sessions = Vec::new();
 
-        // Get local sessions
+        // Get local sessions (fast, always do this)
         match screen::local::list_sessions().await {
             Ok(sessions) => {
                 all_sessions.extend(sessions);
@@ -773,22 +778,37 @@ impl App {
             }
         }
 
-        // Get remote sessions for configured hosts (with timeout, parallel would need borrowing changes)
-        for host in &self.config.hosts {
-            match screen::remote::list_sessions(&self.config, &host.name).await {
-                Ok(sessions) => {
-                    all_sessions.extend(sessions);
-                }
-                Err(_) => {
-                    // Silently ignore remote errors (timeout or connection issues)
-                }
-            }
-        }
-
         self.sessions = all_sessions;
         self.apply_filter();
 
         // Reset selection if out of bounds
+        if self.session_index >= self.filtered_sessions.len() {
+            self.session_index = self.filtered_sessions.len().saturating_sub(1);
+        }
+    }
+
+    /// Refresh remote sessions (called less frequently or on demand)
+    pub async fn refresh_remote_sessions(&mut self) {
+        if self.config.hosts.is_empty() {
+            return;
+        }
+
+        for host in &self.config.hosts {
+            match screen::remote::list_sessions(&self.config, &host.name).await {
+                Ok(sessions) => {
+                    // Remove old sessions from this host and add new ones
+                    self.sessions
+                        .retain(|s| s.host.as_ref() != Some(&host.name));
+                    self.sessions.extend(sessions);
+                }
+                Err(_) => {
+                    // Silently ignore remote errors
+                }
+            }
+        }
+
+        self.apply_filter();
+
         if self.session_index >= self.filtered_sessions.len() {
             self.session_index = self.filtered_sessions.len().saturating_sub(1);
         }
