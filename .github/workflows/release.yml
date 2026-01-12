@@ -84,7 +84,7 @@ jobs:
           curl -X POST \
             -H "Authorization: Bearer ${{ secrets.COPR_API_TOKEN }}" \
             "https://copr.fedorainfracloud.org/api_3/package/build" \
-            -d "ownername=${{ secrets.COPR_USERNAME }}" \
+            -d "ownername=yuikotegawa" \
             -d "projectname=sesh" \
             -d "packagename=sesh" \
             -d "buildopts={\"chroots\": [\"fedora-43-x86_64\"]}"
