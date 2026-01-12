@@ -1030,7 +1030,11 @@ impl App {
                     }
                     InputPurpose::AddHostPort => {
                         if let Some(ref mut host) = self.new_host {
-                            host.3 = if value.is_empty() { "22".to_string() } else { value };
+                            host.3 = if value.is_empty() {
+                                "22".to_string()
+                            } else {
+                                value
+                            };
                         }
                         self.input_mode = InputMode::Input {
                             prompt: "Identity file (e.g., ~/.ssh/id_ed25519):".to_string(),
@@ -1073,7 +1077,13 @@ impl App {
 
     /// Start adding a new host
     fn start_add_host(&mut self) {
-        self.new_host = Some((String::new(), String::new(), String::new(), "22".to_string(), String::new()));
+        self.new_host = Some((
+            String::new(),
+            String::new(),
+            String::new(),
+            "22".to_string(),
+            String::new(),
+        ));
         self.input_mode = InputMode::Input {
             prompt: "Host name (alias):".to_string(),
             purpose: InputPurpose::AddHostName,
@@ -1087,7 +1097,9 @@ impl App {
         if !self.is_hosts_category() || self.config.hosts.is_empty() {
             return;
         }
-        let idx = self.settings_item_index.min(self.config.hosts.len().saturating_sub(1));
+        let idx = self
+            .settings_item_index
+            .min(self.config.hosts.len().saturating_sub(1));
         if idx < self.config.hosts.len() {
             self.config.hosts.remove(idx);
             let _ = self.config.save(None);
@@ -1117,7 +1129,11 @@ impl App {
                 hostname,
                 user: if user.is_empty() { None } else { Some(user) },
                 port: port_num,
-                identity_file: if identity_file.is_empty() { None } else { Some(identity_file) },
+                identity_file: if identity_file.is_empty() {
+                    None
+                } else {
+                    Some(identity_file)
+                },
             };
 
             self.config.hosts.push(new_host);

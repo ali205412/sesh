@@ -73,7 +73,7 @@ async fn run_ssh_command(
             .args(&args)
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
-            .output()
+            .output(),
     )
     .await
     .context("SSH command timed out")?
