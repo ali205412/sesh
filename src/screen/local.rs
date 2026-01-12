@@ -252,6 +252,24 @@ pub async fn kill_session(session: &str) -> Result<()> {
     Ok(())
 }
 
+/// Rename a screen session
+pub async fn rename_session(session: &str, new_name: &str) -> Result<()> {
+    let output = Command::new("screen")
+        .args(["-S", session, "-X", "sessionname", new_name])
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .output()
+        .await
+        .context("Failed to rename session")?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        bail!("Failed to rename session: {}", stderr);
+    }
+
+    Ok(())
+}
+
 /// List windows in a session
 pub async fn list_windows(session: &str) -> Result<Vec<Window>> {
     // Use screen -Q to query window list

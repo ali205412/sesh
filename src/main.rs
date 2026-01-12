@@ -102,6 +102,16 @@ pub enum Commands {
         /// Session name or ID
         session: String,
     },
+
+    /// Rename a screen session
+    Rename {
+        /// Current session name or ID
+        session: String,
+
+        /// New session name
+        #[arg(value_name = "NEW_NAME")]
+        new_name: String,
+    },
 }
 
 #[tokio::main]
@@ -139,6 +149,9 @@ async fn main() -> Result<()> {
         Some(Commands::Templates) => cmd_templates(&config).await,
         Some(Commands::Windows { session }) => {
             cmd_windows(&config, &session, cli.host.as_deref()).await
+        }
+        Some(Commands::Rename { session, new_name }) => {
+            cmd_rename(&session, &new_name, cli.host.as_deref()).await
         }
         None => {
             // Launch TUI
@@ -325,5 +338,16 @@ async fn cmd_windows(_config: &config::Settings, session: &str, host: Option<&st
             );
         }
     }
+    Ok(())
+}
+
+/// Rename session command
+async fn cmd_rename(session: &str, new_name: &str, host: Option<&str>) -> Result<()> {
+    if host.is_some() {
+        anyhow::bail!("Remote rename not yet implemented");
+    } else {
+        screen::local::rename_session(session, new_name).await?;
+    }
+    println!("Renamed '{}' -> '{}'", session, new_name);
     Ok(())
 }
