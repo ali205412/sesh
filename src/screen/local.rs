@@ -405,7 +405,10 @@ pub async fn select_window(session: &str, window: usize) -> Result<()> {
 
 /// Get preview of terminal content
 pub async fn get_preview(session: &str, window: Option<usize>) -> Result<Preview> {
-    let temp_file = format!("/tmp/sesh-preview-{}", std::process::id());
+    let temp_file = format!("/tmp/sesh-preview-{}-{}", std::process::id(), session.replace('.', "_"));
+
+    // Remove any existing temp file first
+    let _ = tokio::fs::remove_file(&temp_file).await;
 
     // Select window if specified
     if let Some(win) = window {
@@ -416,22 +419,30 @@ pub async fn get_preview(session: &str, window: Option<usize>) -> Result<Preview
     }
 
     // Capture terminal content with scrollback
-    let output = Command::new("screen")
+    let _output = Command::new("screen")
         .args(["-S", session, "-X", "hardcopy", "-h", &temp_file])
         .output()
         .await
         .context("Failed to capture terminal content")?;
 
-    // Give it a moment to write
-    tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
-
-    // Read the captured content
-    let content = tokio::fs::read_to_string(&temp_file)
-        .await
-        .unwrap_or_default();
+    // Wait for screen to write the file (try multiple times)
+    let mut content = String::new();
+    for _ in 0..10 {
+        tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
+        if let Ok(c) = tokio::fs::read_to_string(&temp_file).await {
+            if !c.is_empty() {
+                content = c;
+                break;
+            }
+        }
+    }
 
     // Clean up temp file
     let _ = tokio::fs::remove_file(&temp_file).await;
+
+    if content.is_empty() {
+        anyhow::bail!("Failed to capture preview - file empty or not created");
+    }
 
     let lines = parser::parse_hardcopy(&content);
 
