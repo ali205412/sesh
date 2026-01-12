@@ -48,10 +48,6 @@ cargo build --release
 %install
 install -Dm755 target/release/%{crate} %{buildroot}%{_bindir}/%{crate}
 
-# Install shell completions
-install -Dm644 -t %{buildroot}%{_datadir}/fish/vendor_completions.d/ \
-    /dev/null 2>/dev/null || true
-
 # Install config examples
 install -Dm644 config/default.toml %{buildroot}%{_datadir}/%{crate}/config.toml.example
 install -Dm644 templates/default.yaml %{buildroot}%{_datadir}/%{crate}/templates/default.yaml
