@@ -53,19 +53,31 @@ async fn run_ssh_command(
 ) -> Result<String> {
     let (connection, mut args) = get_ssh_args(config, host_name)?;
 
+    // Add SSH options for faster connection
+    args.push("-o".to_string());
+    args.push("ConnectTimeout=3".to_string());
+    args.push("-o".to_string());
+    args.push("BatchMode=yes".to_string());
+    args.push("-o".to_string());
+    args.push("StrictHostKeyChecking=accept-new".to_string());
+
     // Add connection
     args.push(connection);
 
     // Add remote command
     args.extend(remote_cmd.iter().map(|s| s.to_string()));
 
-    let output = Command::new("ssh")
-        .args(&args)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .output()
-        .await
-        .context("Failed to run SSH command")?;
+    let output = tokio::time::timeout(
+        std::time::Duration::from_secs(5),
+        Command::new("ssh")
+            .args(&args)
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .output()
+    )
+    .await
+    .context("SSH command timed out")?
+    .context("Failed to run SSH command")?;
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     let stderr = String::from_utf8_lossy(&output.stderr);

@@ -133,6 +133,9 @@ pub struct App {
     /// Whether app should quit
     pub should_quit: bool,
 
+    /// Pending attach request (session_id, host, spawn)
+    pub pending_attach: Option<(String, Option<String>, bool)>,
+
     /// Available hosts (including local)
     pub hosts: Vec<Option<String>>,
 
@@ -190,6 +193,7 @@ impl App {
             status_message: None,
             error_message: None,
             should_quit: false,
+            pending_attach: None,
             hosts,
             host_index: 0,
             settings_category_index: 0,
@@ -257,6 +261,13 @@ impl App {
         }
 
         terminal.restore()?;
+
+        // Handle pending attach after terminal is restored
+        if let Some((session_id, host, _spawn)) = self.pending_attach.take() {
+            let _ = screen::local::attach_exec(&session_id, host.as_deref()).await;
+            // If we get here, attach failed
+        }
+
         Ok(())
     }
 
@@ -707,10 +718,9 @@ impl App {
                     }
                 }
             } else {
-                // This will exec and replace the current process
-                let _ = screen::local::attach_exec(&id, host.as_deref()).await;
-                // If we get here, attach failed
-                self.error_message = Some("Failed to attach".to_string());
+                // Set pending attach - will be handled after terminal restore
+                self.pending_attach = Some((id, host, spawn));
+                self.should_quit = true;
             }
         }
     }
@@ -763,14 +773,14 @@ impl App {
             }
         }
 
-        // Get remote sessions for configured hosts
+        // Get remote sessions for configured hosts (with timeout, parallel would need borrowing changes)
         for host in &self.config.hosts {
             match screen::remote::list_sessions(&self.config, &host.name).await {
                 Ok(sessions) => {
                     all_sessions.extend(sessions);
                 }
                 Err(_) => {
-                    // Silently ignore remote errors
+                    // Silently ignore remote errors (timeout or connection issues)
                 }
             }
         }
