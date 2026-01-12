@@ -44,6 +44,7 @@ pub fn draw(frame: &mut Frame, _app: &App, theme: &Theme) {
                 ("Enter", "Attach to session"),
                 ("A", "Attach in new terminal"),
                 ("n", "Create new session"),
+                ("R", "Rename session"),
                 ("d", "Detach session"),
                 ("x", "Kill session"),
                 ("w", "View windows"),
@@ -77,10 +78,20 @@ pub fn draw(frame: &mut Frame, _app: &App, theme: &Theme) {
             ],
         ),
         (
-            "UI Toggles",
+            "Settings",
+            vec![
+                ("S", "Open settings"),
+                ("h / l", "Switch category"),
+                ("Enter", "Toggle setting"),
+                ("Esc", "Save and close"),
+            ],
+        ),
+        (
+            "General",
             vec![
                 ("?", "Toggle this help"),
                 ("p", "Toggle preview"),
+                ("Esc", "Close / Go back"),
                 ("q", "Quit sesh"),
                 ("Ctrl-c", "Force quit"),
             ],

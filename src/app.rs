@@ -332,6 +332,12 @@ impl App {
 
     /// Go back to previous view/mode
     fn go_back(&mut self) {
+        // First check if help overlay is shown
+        if self.show_help {
+            self.show_help = false;
+            return;
+        }
+
         match &self.input_mode {
             InputMode::Normal => match self.view {
                 View::Windows => {
