@@ -29,26 +29,16 @@ jobs:
   build-release:
     name: Build Release Binaries
     needs: create-release
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         include:
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
+          - target: x86_64-unknown-linux-gnu
             artifact_name: sesh
             asset_name: sesh-linux-x86_64
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-musl
+          - target: x86_64-unknown-linux-musl
             artifact_name: sesh
             asset_name: sesh-linux-x86_64-musl
-          - os: macos-latest
-            target: x86_64-apple-darwin
-            artifact_name: sesh
-            asset_name: sesh-macos-x86_64
-          - os: macos-latest
-            target: aarch64-apple-darwin
-            artifact_name: sesh
-            asset_name: sesh-macos-aarch64
 
     steps:
       - uses: actions/checkout@v4
@@ -65,8 +55,7 @@ jobs:
       - name: Build release binary
         run: cargo build --release --target ${{ matrix.target }}
 
-      - name: Strip binary (Linux)
-        if: contains(matrix.os, 'ubuntu')
+      - name: Strip binary
         run: strip target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
 
       - name: Create tarball
@@ -98,5 +87,5 @@ jobs:
             -d "ownername=${{ secrets.COPR_USERNAME }}" \
             -d "projectname=sesh" \
             -d "packagename=sesh" \
-            -d "buildopts={\"chroots\": [\"fedora-43-x86_64\", \"fedora-43-aarch64\"]}"
+            -d "buildopts={\"chroots\": [\"fedora-43-x86_64\"]}"
         continue-on-error: true
