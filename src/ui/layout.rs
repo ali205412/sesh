@@ -45,6 +45,10 @@ pub fn draw(frame: &mut Frame, app: &App) {
         View::Help => {
             // Help is drawn as overlay
         }
+        View::Settings => {
+            // Settings is drawn as overlay in mod.rs
+            draw_sessions_view(frame, app, &theme, chunks[1]);
+        }
     }
 
     // Draw footer
@@ -101,6 +105,7 @@ fn draw_header(frame: &mut Frame, app: &App, theme: &Theme, area: Rect) {
             format!(" sesh - Templates ({}) ", app.templates.len())
         }
         View::Help => " sesh - Help ".to_string(),
+        View::Settings => " sesh - Settings ".to_string(),
     };
 
     let help_hint = "[?] Help  [q] Quit";
@@ -177,6 +182,12 @@ fn draw_footer(frame: &mut Frame, app: &App, theme: &Theme, area: Rect) {
         ],
         View::Templates => vec![("[Enter]", "Create"), ("[Esc]", "Back")],
         View::Help => vec![("[Esc]", "Close")],
+        View::Settings => vec![
+            ("[Enter]", "Toggle"),
+            ("[h/l]", "Category"),
+            ("[j/k]", "Navigate"),
+            ("[Esc]", "Save & Close"),
+        ],
     };
 
     let mut spans = Vec::new();

@@ -113,7 +113,7 @@ pub fn draw(frame: &mut Frame, app: &App, theme: &Theme, area: Rect) {
 /// Convert a session to a list item
 fn session_to_list_item<'a>(
     session: &'a Session,
-    app: &App,
+    _app: &App,
     theme: &Theme,
     width: u16,
 ) -> ListItem<'a> {
@@ -135,6 +135,14 @@ fn session_to_list_item<'a>(
 
     let age = Span::styled(session.age_string(), theme.muted());
 
+    // Calculate dynamic name width based on terminal width
+    // Reserve space for: "  " + symbol + " " + "  " + window_count + "  " + status + "  " + age
+    // Approx: 2 + 1 + 1 + 2 + 6 + 2 + 8 + 2 + 4 = 28 chars fixed overhead
+    let fixed_overhead: u16 = 32;
+    let available = width.saturating_sub(fixed_overhead);
+    // Use at least 12 chars, at most 50, scale with available space
+    let name_width = (available / 2).clamp(12, 50) as usize;
+
     // Git info if available
     let git_info = if let Some(ref branch) = session.git_branch {
         let git_symbol = if session.git_clean.unwrap_or(true) {
@@ -144,7 +152,7 @@ fn session_to_list_item<'a>(
         };
         vec![
             Span::raw("  "),
-            Span::styled(branch.clone(), theme.accent()),
+            Span::styled(truncate_str(branch, 20), theme.accent()),
             Span::raw(" "),
             git_symbol,
         ]
@@ -152,32 +160,45 @@ fn session_to_list_item<'a>(
         vec![]
     };
 
-    // Working directory
-    let dir_info = if let Some(ref dir) = session.working_dir {
-        let short_dir = if dir.len() > 20 {
-            format!("...{}", &dir[dir.len() - 17..])
+    // Working directory - use remaining space
+    let dir_width = if width > 100 {
+        30
+    } else if width > 80 {
+        20
+    } else {
+        0
+    };
+    let dir_info = if dir_width > 0 {
+        if let Some(ref dir) = session.working_dir {
+            vec![
+                Span::raw("  "),
+                Span::styled(truncate_str(dir, dir_width), theme.muted()),
+            ]
         } else {
-            dir.clone()
-        };
-        vec![Span::raw("  "), Span::styled(short_dir, theme.muted())]
+            vec![]
+        }
     } else {
         vec![]
     };
 
-    // Build the line
+    // Build the line - session name uses full calculated width
     let mut spans = vec![
         Span::raw("  "),
         status_symbol,
         Span::raw(" "),
-        Span::styled(
-            format!("{:<16}", truncate_str(&session.name, 16)),
-            theme.normal(),
-        ),
-        Span::raw("  "),
-        window_count,
-        Span::raw("  "),
-        status_text,
+        Span::styled(session.name.clone(), theme.normal()),
     ];
+
+    // Add padding to align columns only if name is shorter than width
+    let name_len = session.name.len();
+    if name_len < name_width {
+        spans.push(Span::raw(" ".repeat(name_width - name_len)));
+    }
+
+    spans.push(Span::raw("  "));
+    spans.push(window_count);
+    spans.push(Span::raw("  "));
+    spans.push(status_text);
 
     spans.extend(dir_info);
     spans.extend(git_info);

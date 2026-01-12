@@ -51,12 +51,14 @@ pub enum Action {
 
     // Actions
     NewSession,
+    RenameSession,
     KillSession,
     DetachSession,
     AttachSession,
     AttachSpawn,
     ViewWindows,
     ViewTemplates,
+    ViewSettings,
     Refresh,
 
     // Search
@@ -196,12 +198,14 @@ fn normal_mode_action(key: KeyEvent) -> Action {
 
         // Actions
         KeyCode::Char('n') => Action::NewSession,
+        KeyCode::Char('R') => Action::RenameSession,
         KeyCode::Char('x') => Action::KillSession,
         KeyCode::Char('d') => Action::DetachSession,
         KeyCode::Char('a') => Action::AttachSession,
         KeyCode::Char('A') => Action::AttachSpawn,
         KeyCode::Char('w') => Action::ViewWindows,
         KeyCode::Char('t') => Action::ViewTemplates,
+        KeyCode::Char('S') => Action::ViewSettings,
         KeyCode::Char('r') => Action::Refresh,
 
         // Search

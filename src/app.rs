@@ -23,6 +23,8 @@ pub enum View {
     Templates,
     /// Help overlay
     Help,
+    /// Settings/configuration
+    Settings,
 }
 
 /// Input mode state
@@ -132,6 +134,15 @@ pub struct App {
     /// Current host index
     pub host_index: usize,
 
+    /// Settings category index
+    pub settings_category_index: usize,
+
+    /// Settings item index within category
+    pub settings_item_index: usize,
+
+    /// Theme for rendering
+    pub theme: crate::ui::theme::Theme,
+
     /// Fuzzy matcher
     matcher: SkimMatcherV2,
 }
@@ -146,6 +157,8 @@ impl App {
         }
 
         let show_preview = config.ui.show_preview;
+
+        let theme = crate::ui::theme::Theme::dark();
 
         let app = Self {
             config,
@@ -171,6 +184,9 @@ impl App {
             should_quit: false,
             hosts,
             host_index: 0,
+            settings_category_index: 0,
+            settings_item_index: 0,
+            theme,
             matcher: SkimMatcherV2::default(),
         };
 
@@ -260,12 +276,18 @@ impl App {
             Action::PageDown => self.page_down(),
             Action::Select => self.select().await,
             Action::NewSession => self.start_new_session(),
+            Action::RenameSession => self.start_rename_session(),
             Action::KillSession => self.confirm_kill_session(),
             Action::DetachSession => self.detach_session().await,
             Action::AttachSession => self.attach_session(false).await,
             Action::AttachSpawn => self.attach_session(true).await,
             Action::ViewWindows => self.view_windows().await,
             Action::ViewTemplates => self.view = View::Templates,
+            Action::ViewSettings => {
+                self.view = View::Settings;
+                self.settings_category_index = 0;
+                self.settings_item_index = 0;
+            }
             Action::Refresh => self.refresh_sessions().await,
             Action::StartSearch => {
                 self.input_mode = InputMode::Search;
@@ -288,7 +310,23 @@ impl App {
             Action::InputDelete => self.input_delete(),
             Action::InputConfirm => self.input_confirm().await,
             Action::InputCancel => self.input_cancel(),
-            Action::None | Action::Left | Action::Right => {}
+            Action::Left => {
+                if self.view == View::Settings && self.settings_category_index > 0 {
+                    self.settings_category_index -= 1;
+                    self.settings_item_index = 0;
+                }
+            }
+            Action::Right => {
+                if self.view == View::Settings {
+                    use crate::ui::settings::SettingsCategory;
+                    let max = SettingsCategory::all().len().saturating_sub(1);
+                    if self.settings_category_index < max {
+                        self.settings_category_index += 1;
+                        self.settings_item_index = 0;
+                    }
+                }
+            }
+            Action::None => {}
         }
     }
 
@@ -306,6 +344,11 @@ impl App {
                 }
                 View::Help => {
                     self.show_help = false;
+                }
+                View::Settings => {
+                    // Save settings when closing
+                    let _ = self.config.save(None);
+                    self.view = View::Sessions;
                 }
                 View::Sessions => {}
             },
@@ -339,6 +382,11 @@ impl App {
                     self.template_index -= 1;
                 }
             }
+            View::Settings => {
+                if self.settings_item_index > 0 {
+                    self.settings_item_index -= 1;
+                }
+            }
             View::Help => {}
         }
     }
@@ -364,6 +412,12 @@ impl App {
                     self.template_index += 1;
                 }
             }
+            View::Settings => {
+                let max = self.get_settings_item_count().saturating_sub(1);
+                if self.settings_item_index < max {
+                    self.settings_item_index += 1;
+                }
+            }
             View::Help => {}
         }
     }
@@ -374,6 +428,7 @@ impl App {
             View::Sessions => self.session_index = 0,
             View::Windows => self.window_index = 0,
             View::Templates => self.template_index = 0,
+            View::Settings => self.settings_item_index = 0,
             View::Help => {}
         }
     }
@@ -390,6 +445,9 @@ impl App {
             View::Templates => {
                 self.template_index = self.templates.len().saturating_sub(1);
             }
+            View::Settings => {
+                self.settings_item_index = self.get_settings_item_count().saturating_sub(1);
+            }
             View::Help => {}
         }
     }
@@ -405,6 +463,9 @@ impl App {
             }
             View::Templates => {
                 self.template_index = self.template_index.saturating_sub(10);
+            }
+            View::Settings => {
+                self.settings_item_index = self.settings_item_index.saturating_sub(10);
             }
             View::Help => {}
         }
@@ -425,7 +486,26 @@ impl App {
                 let max = self.templates.len().saturating_sub(1);
                 self.template_index = (self.template_index + 10).min(max);
             }
+            View::Settings => {
+                let max = self.get_settings_item_count().saturating_sub(1);
+                self.settings_item_index = (self.settings_item_index + 10).min(max);
+            }
             View::Help => {}
+        }
+    }
+
+    /// Get the number of items in current settings category
+    fn get_settings_item_count(&self) -> usize {
+        use crate::ui::settings::{get_settings_for_category, SettingsCategory};
+        let categories = SettingsCategory::all();
+        if let Some(cat) = categories.get(self.settings_category_index) {
+            if *cat == SettingsCategory::Hosts {
+                self.config.hosts.len().max(1) // At least 1 for "add host" option
+            } else {
+                get_settings_for_category(&self.config, *cat).len()
+            }
+        } else {
+            0
         }
     }
 
@@ -453,6 +533,9 @@ impl App {
                     View::Templates => {
                         self.create_from_template().await;
                     }
+                    View::Settings => {
+                        self.toggle_setting();
+                    }
                     View::Help => {
                         self.show_help = false;
                     }
@@ -479,6 +562,34 @@ impl App {
         };
         self.input_buffer.clear();
         self.input_cursor = 0;
+    }
+
+    /// Start renaming a session
+    fn start_rename_session(&mut self) {
+        if let Some(session) = self.get_selected_session().cloned() {
+            self.input_mode = InputMode::Input {
+                prompt: format!("Rename '{}' to:", session.name),
+                purpose: InputPurpose::RenameSession,
+            };
+            self.input_buffer = session.name.clone();
+            self.input_cursor = self.input_buffer.len();
+        }
+    }
+
+    /// Toggle a setting value
+    fn toggle_setting(&mut self) {
+        use crate::ui::settings::{apply_setting, get_settings_for_category, SettingsCategory};
+
+        let categories = SettingsCategory::all();
+        if let Some(cat) = categories.get(self.settings_category_index) {
+            let mut settings_items = get_settings_for_category(&self.config, *cat);
+            if let Some(item) = settings_items.get_mut(self.settings_item_index) {
+                item.value.toggle();
+                apply_setting(&mut self.config, &item.key, &item.value);
+                // Save immediately
+                let _ = self.config.save(None);
+            }
+        }
     }
 
     /// Confirm killing a session
@@ -804,7 +915,19 @@ impl App {
                         }
                     }
                     InputPurpose::RenameSession => {
-                        // TODO: Implement session rename
+                        if let Some(session) = self.get_selected_session().cloned() {
+                            match screen::local::rename_session(&session.id, &value).await {
+                                Ok(_) => {
+                                    self.status_message =
+                                        Some(format!("Renamed '{}' -> '{}'", session.name, value));
+                                    self.refresh_sessions().await;
+                                }
+                                Err(e) => {
+                                    self.error_message =
+                                        Some(format!("Failed to rename session: {}", e));
+                                }
+                            }
+                        }
                     }
                     InputPurpose::NewWindow => {
                         if let Some(ref session) = self.selected_session {
