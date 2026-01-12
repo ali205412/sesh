@@ -1,8 +1,9 @@
 //! Help overlay widget
 //!
-//! Renders the help overlay with keyboard shortcuts.
+//! Renders the help overlay with keyboard shortcuts in two columns.
 
 use ratatui::{
+    layout::{Constraint, Direction, Layout},
     text::{Line, Span},
     widgets::{Block, Borders, Clear, Paragraph},
     Frame,
@@ -14,7 +15,7 @@ use super::{layout::centered_rect, theme::Theme};
 
 /// Draw the help overlay
 pub fn draw(frame: &mut Frame, _app: &App, theme: &Theme) {
-    let area = centered_rect(60, 80, frame.size());
+    let area = centered_rect(80, 70, frame.size());
 
     // Clear the background
     frame.render_widget(Clear, area);
@@ -22,59 +23,67 @@ pub fn draw(frame: &mut Frame, _app: &App, theme: &Theme) {
     let block = Block::default()
         .borders(Borders::ALL)
         .border_style(theme.border_focused())
-        .title(" Help - Keyboard Shortcuts ")
+        .title(" Help - Press ? or Esc to close ")
         .style(theme.help_overlay());
 
-    let sections = vec![
+    let inner = block.inner(area);
+    frame.render_widget(block, area);
+
+    // Split into two columns
+    let columns = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+        .split(inner);
+
+    // Left column sections
+    let left_sections = vec![
         (
             "Navigation",
             vec![
-                ("j / Down", "Move down"),
-                ("k / Up", "Move up"),
+                ("j / ↓", "Move down"),
+                ("k / ↑", "Move up"),
                 ("g / Home", "Go to top"),
                 ("G / End", "Go to bottom"),
-                ("PageUp", "Page up"),
-                ("PageDown", "Page down"),
+                ("PgUp/PgDn", "Page up/down"),
                 ("Tab", "Switch host"),
             ],
         ),
         (
-            "Session Actions",
+            "Sessions",
             vec![
-                ("Enter", "Attach to session"),
-                ("A", "Attach in new terminal"),
-                ("n", "Create new session"),
+                ("Enter", "Attach"),
+                ("A", "Attach (new terminal)"),
+                ("n", "New session"),
                 ("R", "Rename session"),
-                ("d", "Detach session"),
-                ("x", "Kill session"),
+                ("d", "Detach"),
+                ("x", "Kill"),
                 ("w", "View windows"),
-                ("r", "Refresh list"),
+                ("r", "Refresh"),
             ],
         ),
         (
-            "Window Actions",
+            "Windows",
             vec![
-                ("Enter", "Select window and attach"),
-                ("n", "Create new window"),
-                ("r", "Rename window"),
-                ("x", "Kill window"),
-                ("Esc", "Go back"),
+                ("Enter", "Select & attach"),
+                ("n", "New window"),
+                ("r", "Rename"),
+                ("x", "Kill"),
             ],
         ),
+    ];
+
+    // Right column sections
+    let right_sections = vec![
         (
             "Templates",
-            vec![
-                ("t", "Open template selector"),
-                ("Enter", "Create from template"),
-                ("Esc", "Cancel"),
-            ],
+            vec![("t", "Open templates"), ("Enter", "Create from template")],
         ),
         (
-            "Search & Filter",
+            "Search",
             vec![
                 ("/", "Start search"),
-                ("Esc", "Clear search"),
-                ("Enter", "Confirm search"),
+                ("Enter", "Confirm"),
+                ("Esc", "Clear"),
             ],
         ),
         (
@@ -82,48 +91,50 @@ pub fn draw(frame: &mut Frame, _app: &App, theme: &Theme) {
             vec![
                 ("S", "Open settings"),
                 ("h / l", "Switch category"),
-                ("Enter", "Toggle setting"),
-                ("Esc", "Save and close"),
+                ("Enter", "Toggle value"),
             ],
         ),
         (
             "General",
             vec![
-                ("?", "Toggle this help"),
+                ("?", "Toggle help"),
                 ("p", "Toggle preview"),
-                ("Esc", "Close / Go back"),
-                ("q", "Quit sesh"),
+                ("Esc", "Back / Close"),
+                ("q", "Quit"),
                 ("Ctrl-c", "Force quit"),
             ],
         ),
     ];
 
+    // Render left column
+    let left_lines = build_section_lines(&left_sections, theme);
+    let left_para = Paragraph::new(left_lines);
+    frame.render_widget(left_para, columns[0]);
+
+    // Render right column
+    let right_lines = build_section_lines(&right_sections, theme);
+    let right_para = Paragraph::new(right_lines);
+    frame.render_widget(right_para, columns[1]);
+}
+
+fn build_section_lines<'a>(sections: &[(&str, Vec<(&str, &str)>)], theme: &Theme) -> Vec<Line<'a>> {
     let mut lines: Vec<Line> = Vec::new();
 
     for (section_name, keys) in sections {
         lines.push(Line::from(Span::raw("")));
         lines.push(Line::from(Span::styled(
-            format!(" {} ", section_name),
+            format!(" {}", section_name),
             theme.header(),
         )));
-        lines.push(Line::from(Span::raw("")));
 
         for (key, desc) in keys {
             lines.push(Line::from(vec![
-                Span::raw("   "),
+                Span::raw("  "),
                 Span::styled(format!("{:<12}", key), theme.key()),
-                Span::styled(desc, theme.key_desc()),
+                Span::styled(desc.to_string(), theme.key_desc()),
             ]));
         }
     }
 
-    lines.push(Line::from(Span::raw("")));
-    lines.push(Line::from(Span::styled(
-        " Press ? or Esc to close ",
-        theme.muted(),
-    )));
-
-    let help = Paragraph::new(lines).block(block);
-
-    frame.render_widget(help, area);
+    lines
 }
