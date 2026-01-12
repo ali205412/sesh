@@ -82,13 +82,20 @@ jobs:
     needs: build-release
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger COPR build
+      - name: Install copr-cli
+        run: pip install copr-cli
+
+      - name: Configure copr-cli
         run: |
-          curl -X POST \
-            -H "Authorization: Bearer ${{ secrets.COPR_API_TOKEN }}" \
-            "https://copr.fedorainfracloud.org/api_3/package/build" \
-            -d "ownername=yuikotegawa" \
-            -d "projectname=sesh" \
-            -d "packagename=sesh" \
-            -d "buildopts={\"chroots\": [\"fedora-43-x86_64\"]}"
+          mkdir -p ~/.config
+          cat > ~/.config/copr << EOF
+          [copr-cli]
+          login = ${{ secrets.COPR_LOGIN }}
+          username = ${{ secrets.COPR_USERNAME }}
+          token = ${{ secrets.COPR_API_TOKEN }}
+          copr_url = https://copr.fedorainfracloud.org
+          EOF
+
+      - name: Trigger COPR build
+        run: copr-cli build-package ${{ secrets.COPR_USERNAME }}/sesh --name sesh --nowait
         continue-on-error: true
