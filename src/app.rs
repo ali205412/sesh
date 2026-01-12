@@ -1002,7 +1002,6 @@ impl App {
                         };
                         self.input_buffer.clear();
                         self.input_cursor = 0;
-                        return;
                     }
                     InputPurpose::AddHostHostname => {
                         if let Some(ref mut host) = self.new_host {
@@ -1014,7 +1013,6 @@ impl App {
                         };
                         self.input_buffer.clear();
                         self.input_cursor = 0;
-                        return;
                     }
                     InputPurpose::AddHostUser => {
                         if let Some(ref mut host) = self.new_host {
@@ -1026,7 +1024,6 @@ impl App {
                         };
                         self.input_buffer = "22".to_string();
                         self.input_cursor = 2;
-                        return;
                     }
                     InputPurpose::AddHostPort => {
                         if let Some(ref mut host) = self.new_host {
@@ -1042,7 +1039,6 @@ impl App {
                         };
                         self.input_buffer.clear();
                         self.input_cursor = 0;
-                        return;
                     }
                     InputPurpose::AddHostIdentityFile => {
                         if let Some(ref mut host) = self.new_host {
