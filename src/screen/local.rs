@@ -410,17 +410,12 @@ pub async fn get_preview(session: &str, window: Option<usize>) -> Result<Preview
     // Remove any existing temp file first
     let _ = tokio::fs::remove_file(&temp_file).await;
 
-    // Select window if specified
-    if let Some(win) = window {
-        let _ = Command::new("screen")
-            .args(["-S", session, "-X", "select", &win.to_string()])
-            .output()
-            .await;
-    }
+    // Use -p to specify which window to capture (default to window 0)
+    let window_num = window.unwrap_or(0).to_string();
 
-    // Capture terminal content with scrollback
+    // Capture terminal content with scrollback using -p to specify window
     let _output = Command::new("screen")
-        .args(["-S", session, "-X", "hardcopy", "-h", &temp_file])
+        .args(["-p", &window_num, "-S", session, "-X", "hardcopy", "-h", &temp_file])
         .output()
         .await
         .context("Failed to capture terminal content")?;

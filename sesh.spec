@@ -1,7 +1,7 @@
 %global crate sesh
 
 Name:           sesh
-Version:        0.1.2
+Version:        0.1.3
 Release:        1%{?dist}
 Summary:        A fully-featured TUI manager for GNU Screen
 
@@ -63,6 +63,9 @@ cargo test --release
 %{_datadir}/%{crate}/
 
 %changelog
+* Sun Jan 12 2025 Ali <ali205412@users.noreply.github.com> - 0.1.3-1
+- Fix preview: use -p flag to specify window for hardcopy command
+
 * Sat Jan 11 2025 Ali <ali205412@users.noreply.github.com> - 0.1.0-1
 - Initial package release
 - Full TUI for GNU Screen session management

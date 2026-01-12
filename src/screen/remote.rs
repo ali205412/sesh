@@ -177,15 +177,13 @@ pub async fn get_preview(
     // Build the command sequence
     let mut commands = Vec::new();
 
-    // Select window if specified
-    if let Some(win) = window {
-        commands.push(format!("screen -S {} -X select {}", session, win));
-    }
+    // Use -p to specify window (default to 0)
+    let win_num = window.unwrap_or(0);
 
-    // Capture content
+    // Capture content using -p to specify which window
     commands.push(format!(
-        "screen -S {} -X hardcopy -h {}",
-        session, temp_file
+        "screen -p {} -S {} -X hardcopy -h {}",
+        win_num, session, temp_file
     ));
 
     // Wait a bit then cat and cleanup

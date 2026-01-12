@@ -1,6 +1,6 @@
 [package]
 name = "sesh"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2021"
 description = "A fully-featured TUI manager for GNU Screen"
 authors = ["sesh contributors"]
