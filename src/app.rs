@@ -218,6 +218,11 @@ impl App {
         self.refresh_sessions().await;
         self.load_templates();
 
+        // Initial preview update
+        if self.show_preview && !self.sessions.is_empty() {
+            self.update_preview().await;
+        }
+
         loop {
             // Draw UI
             terminal.backend.draw(|frame| {
@@ -860,8 +865,14 @@ impl App {
                 screen::local::get_preview(&session_id, None).await
             };
 
-            if let Ok(preview) = result {
-                self.preview = preview;
+            match result {
+                Ok(preview) => {
+                    self.preview = preview;
+                }
+                Err(e) => {
+                    // Log preview error but don't show to user (too noisy)
+                    eprintln!("Preview error for {}: {}", session_id, e);
+                }
             }
         }
     }
