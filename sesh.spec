@@ -1,7 +1,7 @@
 %global crate sesh
 
 Name:           sesh
-Version:        0.1.1
+Version:        0.1.2
 Release:        1%{?dist}
 Summary:        A fully-featured TUI manager for GNU Screen
 
