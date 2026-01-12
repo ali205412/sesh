@@ -12,6 +12,12 @@ Source0:        %{url}/archive/v%{version}/%{crate}-%{version}.tar.gz
 BuildRequires:  cargo >= 1.70
 BuildRequires:  rust >= 1.70
 BuildRequires:  gcc
+BuildRequires:  make
+BuildRequires:  perl
+BuildRequires:  perl-FindBin
+BuildRequires:  perl-IPC-Cmd
+BuildRequires:  perl-File-Compare
+BuildRequires:  perl-File-Copy
 BuildRequires:  openssl-devel
 BuildRequires:  libgit2-devel
 BuildRequires:  pkgconfig
