@@ -39,6 +39,9 @@ shellexpand = "3"
 # Git integration
 git2 = "0.18"
 
+# OpenSSL (vendored for musl builds)
+openssl = { version = "0.10", features = ["vendored"] }
+
 # Logging (for debugging)
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
